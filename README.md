@@ -4,7 +4,8 @@ A small script to bulk-apply launch options like `gamemoderun`, `mangohud`, and 
 
 ## What it does
 
-- **GUI or CLI:** Use the simple window if you're on desktop, or run it with `--cli` if you're in a terminal.
+- **Interactive by default:** Just run the script and it'll walk you through which options you want to enable. 
+- **Power user flags:** Skip the questions by passing flags directly (e.g., `python3 configure_steam.py --gamemode --mangohud`).
 - **Doesn't break things:** It won't overwrite your existing launch options; it just appends the new ones and keeps `%command%` at the end where it belongs.
 - **Safety checks:** It'll warn you if Steam is still open (to avoid file conflicts) and creates `.bak` backups automatically.
 - **Dependency help:** It can try to install `gamemode` or `mangohud` for you if they're missing (supports Arch, Fedora, and Debian/Ubuntu).
@@ -12,9 +13,9 @@ A small script to bulk-apply launch options like `gamemoderun`, `mangohud`, and 
 ## Getting Started
 
 ### Prerequisites
-You'll need Python 3 and Tkinter installed for the GUI to work.
+Python 3 is required. For the GUI, you'll need Tkinter:
 
-- **Arch:** `sudo pacman -S python tk`
+- **Arch / CachyOS:** `sudo pacman -S python tk`
 - **Fedora:** `sudo dnf install python3 tkinter`
 - **Ubuntu / Debian:** `sudo apt install python3 python3-tk`
 
@@ -23,11 +24,14 @@ You'll need Python 3 and Tkinter installed for the GUI to work.
    ```bash
    wget https://raw.githubusercontent.com/Azteriisk/steam-launch-optimizer/main/configure_steam.py
    ```
-2. Run it:
+2. Run it (Interactive):
    ```bash
    python3 configure_steam.py
    ```
-3. Pick your tools and hit **Apply**. 
+3. Run it (Direct with flags):
+   ```bash
+   python3 configure_steam.py --gamemode --mangohud --replace
+   ```
 4. **Restart Steam** for the changes to take effect.
 
 ## Why these options?
