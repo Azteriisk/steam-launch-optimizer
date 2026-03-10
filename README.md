@@ -1,51 +1,40 @@
-# Steam Launch Options Optimizer 🚀
+# steam-launch-optimizer
 
-A simple Python-based tool to automatically apply performance-enhancing launch options to all your Steam games at once. No more manually editing every game in your library!
+A small script to bulk-apply launch options like `gamemoderun`, `mangohud`, and `gamescope` to your entire Steam library. Instead of right-clicking every single game to add these, you can just run this once.
 
-## Features
+## What it does
 
--   **One-Click Optimization:** Add `gamemoderun`, `mangohud`, and `gamescope` to all your games.
--   **Graphical Interface:** Easy-to-use GUI for selecting exactly which options you want.
--   **Smart Appending:** Doesn't overwrite your existing launch options (unless you ask it to). It intelligently appends new tools and ensures `%command%` remains at the end.
--   **Dependency Helper:** Automatically detects if you're missing `gamemode` or `mangohud` and offers to install them (supports Arch, CachyOS, Fedora, Ubuntu, and Debian).
--   **Safety First:**
-    -   Checks if Steam is running to prevent file corruption.
-    -   Automatically creates `.bak` backups of your configuration before making any changes.
--   **CLI Fallback:** Works in the terminal for servers or users who prefer the command line.
+- **GUI or CLI:** Use the simple window if you're on desktop, or run it with `--cli` if you're in a terminal.
+- **Doesn't break things:** It won't overwrite your existing launch options; it just appends the new ones and keeps `%command%` at the end where it belongs.
+- **Safety checks:** It'll warn you if Steam is still open (to avoid file conflicts) and creates `.bak` backups automatically.
+- **Dependency help:** It can try to install `gamemode` or `mangohud` for you if they're missing (supports Arch, Fedora, and Debian/Ubuntu).
 
-## Prerequisites
+## Getting Started
 
-The script requires **Python 3** and **Tkinter** (for the GUI). You can install them with:
+### Prerequisites
+You'll need Python 3 and Tkinter installed for the GUI to work.
 
--   **Arch / CachyOS:** `sudo pacman -S python tk`
--   **Fedora:** `sudo dnf install python3 tkinter`
--   **Ubuntu / Debian:** `sudo apt install python3 python3-tk`
+- **Arch / CachyOS:** `sudo pacman -S python tk`
+- **Fedora:** `sudo dnf install python3 tkinter`
+- **Ubuntu / Debian:** `sudo apt install python3 python3-tk`
 
-## How to Use
+### Usage
+1. Grab the script:
+   ```bash
+   wget https://raw.githubusercontent.com/Azteriisk/steam-launch-optimizer/main/configure_steam.py
+   ```
+2. Run it:
+   ```bash
+   python3 configure_steam.py
+   ```
+3. Pick your tools and hit **Apply**. 
+4. **Restart Steam** for the changes to take effect.
 
-1.  **Download the script:**
-    ```bash
-    wget https://raw.githubusercontent.com/Azteriisk/steam-launch-optimizer/main/configure_steam.py
-    ```
+## Why these options?
 
-2.  **Run it:**
-    ```bash
-    python3 configure_steam.py
-    ```
-
-3.  **Select your options** and click **Apply to All Games**.
-
-4.  **Restart Steam** to see the changes.
-
-## Options Explained
-
--   **GameMode (`gamemoderun`):** Tells your CPU to stay in "high performance" mode while the game is running.
--   **MangoHud:** A powerful performance overlay that shows FPS, temperatures, and frame times.
--   **Gamescope:** Valve's micro-compositor that allows for better upscaling (FSR), HDR support, and improved frame pacing.
+- **GameMode:** Forces your CPU into high-performance mode while you play.
+- **MangoHud:** Shows FPS and system stats in a customizable overlay.
+- **Gamescope:** Valve's compositor for better upscaling (FSR) and frame pacing.
 
 ## Contributing
-
-Feel free to open issues or submit pull requests for new features (like more distro support or additional launch tools).
-
----
-*Created with 🐧 for the Linux gaming community.*
+If you want to add support for other distros or more launch tools, feel free to open a PR.
