@@ -13,11 +13,19 @@ A simple Python-based tool to automatically apply performance-enhancing launch o
     -   Automatically creates `.bak` backups of your configuration before making any changes.
 -   **CLI Fallback:** Works in the terminal for servers or users who prefer the command line.
 
+## Prerequisites
+
+The script requires **Python 3** and **Tkinter** (for the GUI). You can install them with:
+
+-   **Arch / CachyOS:** `sudo pacman -S python tk`
+-   **Fedora:** `sudo dnf install python3 tkinter`
+-   **Ubuntu / Debian:** `sudo apt install python3 python3-tk`
+
 ## How to Use
 
 1.  **Download the script:**
     ```bash
-    wget https://raw.githubusercontent.com/YOUR_USERNAME/steam-launch-optimizer/main/configure_steam.py
+    wget https://raw.githubusercontent.com/Azteriisk/steam-launch-optimizer/main/configure_steam.py
     ```
 
 2.  **Run it:**
