@@ -33,6 +33,8 @@ Python 3 is required. For the GUI, you'll need Tkinter:
    ```
 4. **Restart Steam** for changes to take effect.
 
+> **Note:** Games must be launched at least once for Steam to create the necessary configuration entries. If a newly installed game isn't being updated, launch it once and then run the script again.
+
 ## Options
 
 - **GameMode:** CPU governor optimizations for gaming.
