@@ -36,11 +36,35 @@ def install_dependencies(tools):
     """Offers to install missing tools based on the distro."""
     distro = get_distro()
     pkg_map = {
-        "arch": {"gamemode": "gamemode", "mangohud": "mangohud", "lib32-gamemode": "lib32-gamemode", "lib32-mangohud": "lib32-mangohud"},
-        "fedora": {"gamemode": "gamemode", "mangohud": "mangohud"},
-        "ubuntu": {"gamemode": "gamemode", "mangohud": "mangohud"},
-        "debian": {"gamemode": "gamemode", "mangohud": "mangohud"},
-        "cachyos": {"gamemode": "gamemode", "mangohud": "mangohud", "lib32-gamemode": "lib32-gamemode", "lib32-mangohud": "lib32-mangohud"}
+        "arch": {
+            "gamemode": "gamemode", 
+            "mangohud": "mangohud", 
+            "gamescope": "gamescope",
+            "lib32-gamemode": "lib32-gamemode", 
+            "lib32-mangohud": "lib32-mangohud"
+        },
+        "fedora": {
+            "gamemode": "gamemode", 
+            "mangohud": "mangohud",
+            "gamescope": "gamescope"
+        },
+        "ubuntu": {
+            "gamemode": "gamemode", 
+            "mangohud": "mangohud",
+            "gamescope": "gamescope"
+        },
+        "debian": {
+            "gamemode": "gamemode", 
+            "mangohud": "mangohud",
+            "gamescope": "gamescope"
+        },
+        "cachyos": {
+            "gamemode": "gamemode", 
+            "mangohud": "mangohud", 
+            "gamescope": "gamescope",
+            "lib32-gamemode": "lib32-gamemode", 
+            "lib32-mangohud": "lib32-mangohud"
+        }
     }
     
     # Generic arch-like check
@@ -56,23 +80,25 @@ def install_dependencies(tools):
         install_cmd = ["sudo", "pacman", "-S", "--needed"]
         pkgs = []
         for t in tools:
-            pkgs.append(pkg_map[distro][t])
+            if t in pkg_map[distro]:
+                pkgs.append(pkg_map[distro][t])
             if f"lib32-{t}" in pkg_map[distro]:
                 pkgs.append(pkg_map[distro][f"lib32-{t}"])
         install_cmd.extend(pkgs)
     elif distro == "fedora":
-        install_cmd = ["sudo", "dnf", "install"] + [pkg_map[distro][t] for t in tools]
+        install_cmd = ["sudo", "dnf", "install"] + [pkg_map[distro][t] for t in tools if t in pkg_map[distro]]
     elif distro in ["ubuntu", "debian"]:
-        install_cmd = ["sudo", "apt", "install"] + [pkg_map[distro][t] for t in tools]
+        install_cmd = ["sudo", "apt", "install"] + [pkg_map[distro][t] for t in tools if t in pkg_map[distro]]
 
-    if install_cmd:
-        print(f"Running: {' '.join(install_cmd)}")
-        try:
-            subprocess.run(install_cmd, check=True)
-            return True
-        except subprocess.CalledProcessError:
-            return False
-    return False
+    if not install_cmd or len(install_cmd) <= 3: # 3 is index for sudo, pkg_mgr, command
+         return False
+
+    print(f"Running: {' '.join(install_cmd)}")
+    try:
+        subprocess.run(install_cmd, check=True)
+        return True
+    except subprocess.CalledProcessError:
+        return False
 
 def check_tools(selected_tools):
     """Verifies if the selected tools are installed."""
@@ -187,8 +213,8 @@ def start_gui():
     try:
         import tkinter as tk
         from tkinter import messagebox
-    except ImportError:
-        print("Tkinter not found. Falling back to CLI.")
+    except (ImportError, Exception):
+        print("Tkinter/Graphics initialization failed. Falling back to CLI.")
         run_cli()
         return
 
