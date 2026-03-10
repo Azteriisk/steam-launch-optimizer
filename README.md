@@ -14,7 +14,7 @@ A small script to bulk-apply launch options like `gamemoderun`, `mangohud`, and 
 ### Prerequisites
 You'll need Python 3 and Tkinter installed for the GUI to work.
 
-- **Arch / CachyOS:** `sudo pacman -S python tk`
+- **Arch:** `sudo pacman -S python tk`
 - **Fedora:** `sudo dnf install python3 tkinter`
 - **Ubuntu / Debian:** `sudo apt install python3 python3-tk`
 
