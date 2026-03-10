@@ -75,6 +75,26 @@ def check_tools(selected_tools):
             missing.append(tool)
     return missing
 
+def find_block_range(content, block_name, start_pos=0):
+    """Finds the start and end indices of a named block in a VDF file using brace counting."""
+    pattern = re.compile(rf'"{block_name}"\s*{{', re.IGNORECASE)
+    match = pattern.search(content, start_pos)
+    if not match:
+        return None
+    
+    start_index = match.start()
+    brace_start = content.find('{', start_index)
+    
+    count = 0
+    for i in range(brace_start, len(content)):
+        if content[i] == '{':
+            count += 1
+        elif content[i] == '}':
+            count -= 1
+            if count == 0:
+                return (start_index, i + 1)
+    return None
+
 def update_vdf(file_path, new_options_str, replace_existing=False):
     print(f"Processing: {file_path}")
     try:
@@ -84,34 +104,60 @@ def update_vdf(file_path, new_options_str, replace_existing=False):
         print(f"Error: {e}")
         return
 
-    apps_match = re.search(r'([ \t]*"apps"\s*\{)(.*?)(\n[ \t]*\}\n[ \t]*"LastPlayedTimesSyncTime"|\n[ \t]{3,4}\}(?=\n))', content, re.IGNORECASE | re.DOTALL)
-    if not apps_match:
+    # Steam's localconfig.vdf can have "apps" nested under Software/Valve/Steam
+    # We look specifically for the apps block that contains AppIDs
+    apps_range = find_block_range(content, "apps")
+    if not apps_range:
+        print(f"Could not find 'apps' block in {file_path}")
         return
 
-    prefix, apps_block, suffix = apps_match.groups()
-    app_pattern = re.compile(r'([ \t]*"\d+"\s*\{)(.*?)(\n[ \t]*\})', re.DOTALL)
+    apps_start, apps_end = apps_range
+    apps_header_end = content.find('{', apps_start) + 1
+    apps_body = content[apps_header_end : apps_end - 1]
+    
+    # Each app is "AppID" { ... }
+    app_pattern = re.compile(r'([ \t]*"(\d+)"\s*\{)(.*?)(\n[ \t]*\})', re.DOTALL)
     
     def modify_app_block(match):
-        start, inner, end = match.groups()
+        start, appid, inner, end = match.groups()
+        
+        # We need to update LaunchOptions wherever it exists in the block (root or sub-block)
         if '"LaunchOptions"' in inner:
-            if replace_existing:
-                inner = re.sub(r'("LaunchOptions"[ \t]+)"[^"]*"', rf'\1"{new_options_str}"', inner)
-            else:
-                existing_match = re.search(r'"LaunchOptions"[ \t]+"([^"]*)"', inner)
-                if existing_match:
-                    existing = existing_match.group(1)
+            def replace_logic(m):
+                key_part, val_part = m.groups()
+                if replace_existing:
+                    return f'{key_part}"{new_options_str}"'
+                else:
+                    existing = val_part.strip('"')
                     base_existing = existing.replace("%command%", "").strip()
                     if new_options_str.replace("%command%", "").strip() not in base_existing:
                         clean_new = new_options_str.replace("%command%", "").strip()
                         new_val = f"{base_existing} {clean_new} %command%".strip()
-                        inner = re.sub(r'("LaunchOptions"[ \t]+)"[^"]*"', rf'\1"{new_val}"', inner)
+                        return f'{key_part}"{new_val}"'
+                return m.group(0)
+
+            # Global replace within this app block
+            inner = re.sub(r'("LaunchOptions"[ \t]+)("[^"]*")', replace_logic, inner)
         else:
-            indent = end.replace('\n', '').replace('}', '') + '\t'
-            inner += f'\n{indent}"LaunchOptions"\t\t"{new_options_str}"'
+            # If it doesn't exist, we'll try to find a "cloud" block to put it in, 
+            # otherwise we put it at the root of the AppID block.
+            if '"cloud"' in inner:
+                cloud_match = re.search(r'("cloud"\s*\{)', inner)
+                if cloud_match:
+                    cloud_start = cloud_match.end()
+                    # Just insert it right after the cloud block starts
+                    inner = inner[:cloud_start] + f'\n\t\t\t\t\t\t"LaunchOptions"\t\t"{new_options_str}"' + inner[cloud_start:]
+            else:
+                # Root level of AppID block
+                indent_match = re.search(r'\n([ \t]*)', end)
+                indent = indent_match.group(1) + "\t" if indent_match else "\t\t\t\t"
+                inner = inner.rstrip() + f'\n{indent}"LaunchOptions"\t\t"{new_options_str}"\n'
+        
         return start + inner + end
 
-    new_apps_block = app_pattern.sub(modify_app_block, apps_block)
-    new_content = content[:apps_match.start()] + prefix + new_apps_block + suffix + content[apps_match.end():]
+    new_apps_body = app_pattern.sub(modify_app_block, apps_body)
+    new_content = content[:apps_header_end] + new_apps_body + content[apps_end - 1:]
+
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(new_content)
 
@@ -167,7 +213,7 @@ def start_gui():
 
     tk.Checkbutton(root, text="GameMode (gamemoderun)", variable=gm_v).pack(anchor="w", padx=60)
     tk.Checkbutton(root, text="MangoHud (Performance Overlay)", variable=mh_v).pack(anchor="w", padx=60)
-    tk.Checkbutton(root, text="Gamescope (Micro-compositor)", variable=gs_v).pack(anchor="w", padx=60)
+    tk.Checkbutton(root, text="Enable Gamescope", variable=gs_v).pack(anchor="w", padx=60)
     tk.Checkbutton(root, text="Overwrite existing options?", variable=rp_v).pack(anchor="w", padx=60, pady=(10,0))
 
     def on_run():
