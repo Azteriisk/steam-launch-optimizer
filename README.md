@@ -2,20 +2,19 @@
 
 A small script to bulk-apply launch options like `gamemoderun`, `mangohud`, and `gamescope` to your entire Steam library. Instead of right-clicking every single game to add these, you can just run this once.
 
-## What it does
+## Functionality
 
-- **Interactive by default:** Just run the script and it'll walk you through which options you want to enable. 
-- **Power user flags:** Skip the questions by passing flags directly (e.g., `python3 configure_steam.py --gamemode --mangohud`).
-- **Doesn't break things:** It won't overwrite your existing launch options; it just appends the new ones and keeps `%command%` at the end where it belongs.
-- **Safety checks:** It'll warn you if Steam is still open (to avoid file conflicts) and creates `.bak` backups automatically.
-- **Dependency help:** It can try to install `gamemode` or `mangohud` for you if they're missing (supports Arch, Fedora, and Debian/Ubuntu).
+- **Interactive:** Running the script without flags will ask you which options to enable.
+- **Flags:** You can skip the prompts by passing flags (e.g., `--gamemode --mangohud`).
+- **Safe updates:** It appends to your existing options and ensures `%command%` stays at the end. It also creates `.bak` backups of your config files.
+- **Auto-install:** Can attempt to install missing tools via your package manager (Arch, Fedora, Debian/Ubuntu).
 
 ## Getting Started
 
 ### Prerequisites
 Python 3 is required. For the GUI, you'll need Tkinter:
 
-- **Arch / CachyOS:** `sudo pacman -S python tk`
+- **Arch:** `sudo pacman -S python tk`
 - **Fedora:** `sudo dnf install python3 tkinter`
 - **Ubuntu / Debian:** `sudo apt install python3 python3-tk`
 
@@ -24,21 +23,21 @@ Python 3 is required. For the GUI, you'll need Tkinter:
    ```bash
    wget https://raw.githubusercontent.com/Azteriisk/steam-launch-optimizer/main/configure_steam.py
    ```
-2. Run it (Interactive):
+2. Run it:
    ```bash
    python3 configure_steam.py
    ```
-3. Run it (Direct with flags):
+3. (Optional) Run directly with flags:
    ```bash
    python3 configure_steam.py --gamemode --mangohud --replace
    ```
-4. **Restart Steam** for the changes to take effect.
+4. **Restart Steam** for changes to take effect.
 
-## Why these options?
+## Options
 
-- **GameMode:** Forces your CPU into high-performance mode while you play.
-- **MangoHud:** Shows FPS and system stats in a customizable overlay.
-- **Gamescope:** Valve's compositor for better upscaling (FSR) and frame pacing.
+- **GameMode:** CPU governor optimizations for gaming.
+- **MangoHud:** Performance and hardware monitoring overlay.
+- **Gamescope:** Valve's micro-compositor for upscaling and frame pacing.
 
 ## Contributing
-If you want to add support for other distros or more launch tools, feel free to open a PR.
+Open a PR if you want to add more distro support or additional tools.
