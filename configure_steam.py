@@ -77,7 +77,8 @@ def check_tools(selected_tools):
 
 def find_block_range(content, block_name, start_pos=0):
     """Finds the start and end indices of a named block in a VDF file using brace counting."""
-    pattern = re.compile(rf'"{block_name}"\s*{{', re.IGNORECASE)
+    # We must match exactly the key name with quotes
+    pattern = re.compile(rf'"{block_name}"\s*\{{', re.IGNORECASE)
     match = pattern.search(content, start_pos)
     if not match:
         return None
@@ -104,58 +105,90 @@ def update_vdf(file_path, new_options_str, replace_existing=False):
         print(f"Error: {e}")
         return
 
-    # Steam's localconfig.vdf can have "apps" nested under Software/Valve/Steam
-    # We look specifically for the apps block that contains AppIDs
-    apps_range = find_block_range(content, "apps")
+    # To find the REAL apps block, we must traverse the structure:
+    # Software -> Valve -> Steam -> apps
+    soft_range = find_block_range(content, "Software")
+    if not soft_range:
+        print(f"Could not find 'Software' block in {file_path}")
+        return
+    
+    valve_range = find_block_range(content, "Valve", soft_range[0])
+    if not valve_range:
+        print(f"Could not find 'Valve' block in {file_path}")
+        return
+        
+    steam_range = find_block_range(content, "Steam", valve_range[0])
+    if not steam_range:
+        print(f"Could not find 'Steam' block in {file_path}")
+        return
+        
+    apps_range = find_block_range(content, "apps", steam_range[0])
     if not apps_range:
         print(f"Could not find 'apps' block in {file_path}")
         return
 
     apps_start, apps_end = apps_range
+    # Skip the "apps" { part
     apps_header_end = content.find('{', apps_start) + 1
     apps_body = content[apps_header_end : apps_end - 1]
     
-    # Each app is "AppID" { ... }
-    app_pattern = re.compile(r'([ \t]*"(\d+)"\s*\{)(.*?)(\n[ \t]*\})', re.DOTALL)
-    
-    def modify_app_block(match):
-        start, appid, inner, end = match.groups()
+    new_apps_body = ""
+    current_pos = 0
+    # Process each AppID block inside the apps body
+    while True:
+        # Match "AppID" {
+        match = re.search(r'"(\d+)"\s*\{', apps_body[current_pos:])
+        if not match:
+            new_apps_body += apps_body[current_pos:]
+            break
         
-        # We need to update LaunchOptions wherever it exists in the block (root or sub-block)
-        if '"LaunchOptions"' in inner:
-            def replace_logic(m):
-                key_part, val_part = m.groups()
-                if replace_existing:
-                    return f'{key_part}"{new_options_str}"'
-                else:
-                    existing = val_part.strip('"')
-                    base_existing = existing.replace("%command%", "").strip()
-                    if new_options_str.replace("%command%", "").strip() not in base_existing:
-                        clean_new = new_options_str.replace("%command%", "").strip()
-                        new_val = f"{base_existing} {clean_new} %command%".strip()
-                        return f'{key_part}"{new_val}"'
-                return m.group(0)
-
-            # Global replace within this app block
-            inner = re.sub(r'("LaunchOptions"[ \t]+)("[^"]*")', replace_logic, inner)
-        else:
-            # If it doesn't exist, we'll try to find a "cloud" block to put it in, 
-            # otherwise we put it at the root of the AppID block.
-            if '"cloud"' in inner:
-                cloud_match = re.search(r'("cloud"\s*\{)', inner)
-                if cloud_match:
-                    cloud_start = cloud_match.end()
-                    # Just insert it right after the cloud block starts
-                    inner = inner[:cloud_start] + f'\n\t\t\t\t\t\t"LaunchOptions"\t\t"{new_options_str}"' + inner[cloud_start:]
-            else:
-                # Root level of AppID block
-                indent_match = re.search(r'\n([ \t]*)', end)
-                indent = indent_match.group(1) + "\t" if indent_match else "\t\t\t\t"
-                inner = inner.rstrip() + f'\n{indent}"LaunchOptions"\t\t"{new_options_str}"\n'
+        # Add everything before the match
+        new_apps_body += apps_body[current_pos : current_pos + match.start()]
         
-        return start + inner + end
+        appid_start = current_pos + match.start()
+        brace_start = apps_body.find('{', appid_start)
+        
+        # Brace count to find end of AppID block
+        count = 0
+        appid_end = -1
+        for i in range(brace_start, len(apps_body)):
+            if apps_body[i] == '{':
+                count += 1
+            elif apps_body[i] == '}':
+                count -= 1
+                if count == 0:
+                    appid_end = i + 1
+                    break
+        
+        if appid_end == -1:
+            new_apps_body += apps_body[appid_start:]
+            break
+            
+        appid_block = apps_body[appid_start:appid_end]
+        
+        # 1. Strip ALL existing LaunchOptions entries in this AppID block
+        appid_block = re.sub(r'[ \t]*"LaunchOptions"[ \t]+"[^"]*"[ \t]*\n?', '', appid_block)
+        
+        # 2. Add the clean LaunchOptions
+        last_brace_idx = appid_block.rfind('}')
+        # Find indent of closing brace
+        line_start = appid_block.rfind('\n', 0, last_brace_idx)
+        if line_start == -1: line_start = 0
+        else: line_start += 1
+        
+        indent = ""
+        for char in appid_block[line_start:last_brace_idx]:
+            if char in " \t": indent += char
+            else: break
+        
+        inner_indent = indent + "\t"
+        new_entry = f'\n{inner_indent}"LaunchOptions"\t\t"{new_options_str}"'
+        # Construct updated block
+        appid_block = appid_block[:last_brace_idx].rstrip() + new_entry + "\n" + indent + "}"
+        
+        new_apps_body += appid_block
+        current_pos = appid_end
 
-    new_apps_body = app_pattern.sub(modify_app_block, apps_body)
     new_content = content[:apps_header_end] + new_apps_body + content[apps_end - 1:]
 
     with open(file_path, 'w', encoding='utf-8') as f:
@@ -188,7 +221,7 @@ def run_optimizer(options):
         for vdf_file in glob.glob(os.path.expanduser(path_pattern)):
             found = True
             os.system(f'cp "{vdf_file}" "{vdf_file}.bak"')
-            update_vdf(vdf_file, launch_str, options.get('replace', False))
+            update_vdf(vdf_file, launch_str, options.get('replace', True))
     
     return (True, "Success! Restart Steam to see changes.") if found else (False, "Could not find localconfig.vdf.")
 
